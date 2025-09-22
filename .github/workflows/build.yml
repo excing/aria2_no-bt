@@ -1,6 +1,9 @@
 name: build
 
-on: [push, pull_request]
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # 触发于 v1.0.0 等标签
 
 jobs:
   build-linux:
