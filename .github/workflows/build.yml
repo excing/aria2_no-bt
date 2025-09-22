@@ -42,7 +42,7 @@ jobs:
       - name: Autogen and configure
         run: |
           autoreconf -i
-          ./configure --prefix=/usr/local --without-libcares --enable-static --disable-shared  --with-gnutls --without-openssl $FEATURE_FLAGS  # 静态编译，禁用可选依赖以简化
+          ./configure --with-gnutls --without-openssl $FEATURE_FLAGS
 
       - name: Build
         run: make -j$(nproc)
