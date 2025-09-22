@@ -34,6 +34,25 @@ jobs:
             libssh2-1-dev \
             libcppunit-dev
 
+      - name: Setup gcc (Linux)
+        run: |
+          echo 'CC=gcc-12' >> $GITHUB_ENV
+          echo 'CXX=g++-12' >> $GITHUB_ENV
+
+      - name: Libtool
+        run: |
+          autoreconf -i
+
+      - name: Setup compiler flags
+        run: |
+          asanflags="-fsanitize=address,undefined -fno-sanitize-recover=undefined"
+  
+          CPPFLAGS="$asanflags -g3"
+          LDFLAGS="$asanflags"
+  
+          echo 'CPPFLAGS='"$CPPFLAGS" >> $GITHUB_ENV
+          echo 'LDFLAGS='"$LDFLAGS" >> $GITHUB_ENV
+
       - name: Disable BitTorrent
         run: |
           FEATURE_FLAGS="$FEATURE_FLAGS --disable-bittorrent"
@@ -42,7 +61,7 @@ jobs:
       - name: Autogen and configure
         run: |
           autoreconf -i
-          ./configure --with-gnutls --without-openssl $FEATURE_FLAGS
+          ./configure --without-gnutls --with-openssl $FEATURE_FLAGS
 
       - name: Build
         run: make -j$(nproc)
