@@ -3,78 +3,41 @@ name: build
 on: [push, pull_request]
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        os: [ubuntu-22.04]
-        compiler: [gcc, clang]
-        crypto: [openssl, gnutls]
-        bittorrent: [without-bt]
-        # 可选：如果需要 openssl 和 without-bt 组合，移除以下排除规则
-        # exclude:
-        #   - crypto: openssl
-        #     bittorrent: without-bt
-
-    runs-on: ${{ matrix.os }}
-
+  build-linux:
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
-    - name: Linux setup
-      run: |
-        sudo apt-get update
-        sudo apt-get install \
-          g++-12 \
-          clang-15 \
-          autoconf \
-          automake \
-          autotools-dev \
-          autopoint \
-          libtool \
-          pkg-config \
-          libssl-dev \
-          libgnutls28-dev \
-          libc-ares-dev \
-          zlib1g-dev \
-          libsqlite3-dev \
-          libssh2-1-dev \
-          libcppunit-dev
-    - name: Setup clang (Linux)
-      if: matrix.compiler == 'clang'
-      run: |
-        echo 'CC=clang-15' >> $GITHUB_ENV
-        echo 'CXX=clang++-15' >> $GITHUB_ENV
-    - name: Setup gcc (Linux)
-      if: matrix.compiler == 'gcc'
-      run: |
-        echo 'CC=gcc-12' >> $GITHUB_ENV
-        echo 'CXX=g++-12' >> $GITHUB_ENV
-    - name: Libtool
-      run: |
-        autoreconf -i
-    - name: Setup compiler flags
-      run: |
-        asanflags="-fsanitize=address,undefined -fno-sanitize-recover=undefined"
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史，用于生成 release notes
 
-        CPPFLAGS="$asanflags -g3"
-        LDFLAGS="$asanflags"
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y autoconf automake libtool pkg-config build-essential libssl-dev zlib1g-dev libxml2-dev libbz2-dev libgcrypt20-dev libgmp-dev libssh2-1-dev libnettle-dev
 
-        echo 'CPPFLAGS='"$CPPFLAGS" >> $GITHUB_ENV
-        echo 'LDFLAGS='"$LDFLAGS" >> $GITHUB_ENV
-    - name: Disable BitTorrent
-      if: matrix.bittorrent == 'without-bt'
-      run: |
-        FEATURE_FLAGS="$FEATURE_FLAGS --disable-bittorrent"
-        echo 'FEATURE_FLAGS='"$FEATURE_FLAGS" >> $GITHUB_ENV
-    - name: Configure autotools (Linux, gnutls)
-      if: matrix.crypto == 'gnutls'
-      run: |
-        ./configure --with-gnutls --without-openssl $FEATURE_FLAGS
-    - name: Configure autotools (Linux, openssl)
-      if: matrix.crypto == 'openssl'
-      run: |
-        ./configure --without-gnutls --with-openssl $FEATURE_FLAGS
-    - name: Build aria2
-      run: |
-        # 验证架构（可选）
-        uname -m  # 应输出 x86_64
-        make -j"$(nproc)" check
+      - name: Disable BitTorrent
+        run: |
+          FEATURE_FLAGS="$FEATURE_FLAGS --disable-bittorrent"
+          echo 'FEATURE_FLAGS='"$FEATURE_FLAGS" >> $GITHUB_ENV
+
+      - name: Autogen and configure
+        run: |
+          autoreconf -i
+          ./configure --prefix=/usr/local --without-libcares --enable-static --disable-shared  --with-gnutls --without-openssl $FEATURE_FLAGS  # 静态编译，禁用可选依赖以简化
+
+      - name: Build
+        run: make -j$(nproc)
+
+      - name: Package binary
+        run: |
+          strip src/aria2c  # 剥离符号减小文件大小
+          tar -czf aria2-${{ github.ref_name }}-linux-x86_64.tar.gz src/aria2c
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            aria2-${{ github.ref_name }}-linux-x86_64.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
