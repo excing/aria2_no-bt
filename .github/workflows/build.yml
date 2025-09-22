@@ -14,7 +14,22 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y autoconf automake libtool pkg-config build-essential libssl-dev zlib1g-dev libxml2-dev libbz2-dev libgcrypt20-dev libgmp-dev libssh2-1-dev libnettle-dev
+          sudo apt-get install \
+            g++-12 \
+            clang-15 \
+            autoconf \
+            automake \
+            autotools-dev \
+            autopoint \
+            libtool \
+            pkg-config \
+            libssl-dev \
+            libgnutls28-dev \
+            libc-ares-dev \
+            zlib1g-dev \
+            libsqlite3-dev \
+            libssh2-1-dev \
+            libcppunit-dev
 
       - name: Disable BitTorrent
         run: |
