@@ -80,7 +80,7 @@ jobs:
           echo "--- Checking linked shared libraries for aria2c ---"
           # 执行 ldd 命令来验证链接结果
           # 理想情况下，除了核心系统库（如 linux-vdso, libc, ld-linux），不应再看到 libssh2, libcares 等库
-          ldd src/aria2c
+          echo "aria2c 命令的依赖关系是：$(ldd src/aria2c)"
           echo "----------------------------------------------------"
 
       - name: Package binary
