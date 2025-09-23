@@ -45,7 +45,6 @@ jobs:
 
       - name: Libtool
         run: |
-          make clean
           autoreconf -i
 
       - name: Disable BitTorrent
