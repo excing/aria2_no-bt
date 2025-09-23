@@ -36,9 +36,7 @@ jobs:
             libcppunit-dev\
             libxml2-dev \
             libunistring-dev \
-            libp11-kit-dev \
-            libp11-kit \
-            p11-kit
+            libp11-kit-dev
 
           echo "--- Verifying static library installation ---"
           # 关键诊断步骤：查找 libp11-kit.a 文件是否存在
