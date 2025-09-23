@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -17,8 +17,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
+          sudo apt-get install \
             g++-12 \
             clang-15 \
             autoconf \
@@ -33,20 +32,12 @@ jobs:
             zlib1g-dev \
             libsqlite3-dev \
             libssh2-1-dev \
-            libcppunit-dev \
-            gettext
+            libcppunit-dev
 
       - name: Setup gcc (Linux)
         run: |
           echo 'CC=gcc-12' >> $GITHUB_ENV
           echo 'CXX=g++-12' >> $GITHUB_ENV
-
-      - name: Verify compiler
-        run: |
-          which gcc-12
-          gcc-12 --version
-          which g++-12
-          g++-12 --version
 
       - name: Libtool
         run: |
@@ -57,48 +48,39 @@ jobs:
           FEATURE_FLAGS="$FEATURE_FLAGS --disable-bittorrent"
           echo 'FEATURE_FLAGS='"$FEATURE_FLAGS" >> $GITHUB_ENV
 
-      - name: Configure for static build
+      - name: Autogen and configure
         run: |
-          # 先尝试基本配置，不使用 -static
+          autoreconf -i
+          # LDFLAGS="-static" ./configure --enable-static --disable-shared --without-gnutls --with-openssl $FEATURE_FLAGS
+          # 关键：配置编译参数
+          # ARIA2_STATIC=yes 是 aria2 构建系统的一个特性，它会优先寻找静态库
+          # LDFLAGS="-static-libgcc -static-libstdc++" 会静态链接 GCC 和 C++ 的运行时库，增强可移植性
+          export ARIA2_STATIC=yes
           ./configure \
-            --enable-static \
-            --disable-shared \
-            --without-gnutls \
             --with-openssl \
             --with-libssh2 \
-            --disable-nls \
-            $FEATURE_FLAGS
+            --with-libcares \
+            --with-libz \
+            --with-libxml2 \
+            --with-sqlite3 \
+            $FEATURE_FLAGS \
+            LDFLAGS="-static-libgcc -static-libstdc++"
 
       - name: Build
         run: make -j$(nproc)
 
-      - name: Create static binary (alternative method)
+      - name: Verify dependencies
         run: |
-          # 如果上面的方法不行，尝试重新配置为完全静态
-          make clean || true
-          ./configure \
-            --enable-static \
-            --disable-shared \
-            --without-gnutls \
-            --with-openssl \
-            --with-libssh2 \
-            --disable-nls \
-            $FEATURE_FLAGS \
-            LDFLAGS="-static -pthread" \
-            CPPFLAGS="-I/usr/include" \
-            PKG_CONFIG="pkg-config --static"
-          make -j$(nproc) LDFLAGS="-all-static"
+          echo "--- Checking linked shared libraries for aria2c ---"
+          # 执行 ldd 命令来验证链接结果
+          # 理想情况下，除了核心系统库（如 linux-vdso, libc, ld-linux），不应再看到 libssh2, libcares 等库
+          ldd src/aria2c
+          echo "----------------------------------------------------"
 
       - name: Package binary
         run: |
           strip src/aria2c  # 剥离符号减小文件大小
-          chmod +x src/aria2c
           tar -czf aria2-${{ github.ref_name }}-linux-x86_64.tar.gz src/aria2c
-          
-          # 验证二进制文件
-          ls -la src/aria2c
-          file src/aria2c
-          ldd src/aria2c || echo "Static binary (no dynamic dependencies)"
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
