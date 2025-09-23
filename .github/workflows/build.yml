@@ -40,6 +40,13 @@ jobs:
             libp11-kit \
             p11-kit
 
+          echo "--- Verifying static library installation ---"
+          # 关键诊断步骤：查找 libp11-kit.a 文件是否存在
+          # 在 Ubuntu 22.04 上，它应该位于 /usr/lib/x86_64-linux-gnu/ 目录下
+          # 如果这个 ls 命令失败，说明包没有被正确安装或文件路径不符合预期
+          ls -l /usr/lib/x86_64-linux-gnu/libp11-kit.a
+          echo "--- Verification complete ---"
+
       - name: Setup gcc (Linux)
         run: |
           echo 'CC=gcc-12' >> $GITHUB_ENV
@@ -47,6 +54,7 @@ jobs:
 
       - name: Libtool
         run: |
+          make clean
           autoreconf -i
 
       - name: Disable BitTorrent
@@ -62,6 +70,7 @@ jobs:
           # ARIA2_STATIC=yes 是 aria2 构建系统的一个特性，它会优先寻找静态库
           # LDFLAGS="-static-libgcc -static-libstdc++" 会静态链接 GCC 和 C++ 的运行时库，增强可移植性
           export ARIA2_STATIC=yes
+          export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:$PKG_CONFIG_PATH"
           ./configure \
             --with-openssl \
             --with-libssh2 \
@@ -73,7 +82,7 @@ jobs:
             LDFLAGS="-static-libgcc -static-libstdc++"
 
       - name: Build
-        run: make -j$(nproc)
+        run: make -j$(nproc) V=1 # V=1 会输出详细的编译命令，有助于调试
 
       - name: Verify dependencies
         run: |
