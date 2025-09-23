@@ -64,13 +64,7 @@ jobs:
           ./configure \
             --without-gnutls \
             --with-openssl \
-            --with-libssh2 \
-            --with-libcares \
-            --with-libz \
-            --with-libxml2 \
-            --with-sqlite3 \
             $FEATURE_FLAGS \
-            LDFLAGS="-static-libgcc -static-libstdc++"
 
       - name: Build
         run: make -j$(nproc) V=1 # V=1 会输出详细的编译命令，有助于调试
@@ -80,7 +74,8 @@ jobs:
           echo "--- Checking linked shared libraries for aria2c ---"
           # 执行 ldd 命令来验证链接结果
           # 理想情况下，除了核心系统库（如 linux-vdso, libc, ld-linux），不应再看到 libssh2, libcares 等库
-          echo "aria2c 命令的依赖关系是：$(ldd src/aria2c)"
+          echo “aria2c 命令的依赖关系是：”
+          echo "$(ldd src/aria2c)"
           echo "----------------------------------------------------"
 
       - name: Package binary
