@@ -51,7 +51,7 @@ jobs:
       - name: Autogen and configure
         run: |
           autoreconf -i
-          LDFLAGS="-static" ./configure --enable-static --disable-shared --without-gnutls --with-openssl $FEATURE_FLAGS
+          LDFLAGS="-static" ./configure --enable-static --disable-shared --without-gnutls --with-openssl --with-libssh2 $FEATURE_FLAGS
 
       - name: Build
         run: make -j$(nproc)
