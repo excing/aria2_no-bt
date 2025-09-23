@@ -51,17 +51,17 @@ jobs:
       - name: Autogen and configure for static build
         run: |
           autoreconf -i
-          # 使用 pkg-config 获取静态库的链接参数，并强制使用静态链接
-          export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig"
-          LDFLAGS="-all-static" ./configure \
+          # 使用 LDFLAGS="-static" 来指示链接器优先使用静态库
+          # 同时，通过 LIBS 变量和 pkg-config 明确指定需要静态链接的库。
+          # 这种方法比 -all-static 更安全，因为它不会强制静态链接系统核心库（如 libc）。
+          LDFLAGS="-static" ./configure \
             --enable-static \
             --disable-shared \
-            --with-gnutls \
-            --without-openssl \
+            --without-gnutls \
+            --with-openssl \
             --with-libssh2 \
             $FEATURE_FLAGS \
-            PKG_CONFIG_LIBDIR="/usr/lib/x86_64-linux-gnu/pkgconfig" \
-            LIBS="$(pkg-config --libs --static libssl libcrypto zlib libssh2)"
+            LIBS="$(pkg-config --libs --static openssl zlib libssh2 libcares sqlite3)"
 
       - name: Build
         run: make -j$(nproc)
