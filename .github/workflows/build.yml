@@ -43,16 +43,6 @@ jobs:
         run: |
           autoreconf -i
 
-      - name: Setup compiler flags
-        run: |
-          asanflags="-fsanitize=address,undefined -fno-sanitize-recover=undefined"
-  
-          CPPFLAGS="$asanflags -g3"
-          LDFLAGS="$asanflags"
-  
-          echo 'CPPFLAGS='"$CPPFLAGS" >> $GITHUB_ENV
-          echo 'LDFLAGS='"$LDFLAGS" >> $GITHUB_ENV
-
       - name: Disable BitTorrent
         run: |
           FEATURE_FLAGS="$FEATURE_FLAGS --disable-bittorrent"
