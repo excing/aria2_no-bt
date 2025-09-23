@@ -48,10 +48,20 @@ jobs:
           FEATURE_FLAGS="$FEATURE_FLAGS --disable-bittorrent"
           echo 'FEATURE_FLAGS='"$FEATURE_FLAGS" >> $GITHUB_ENV
 
-      - name: Autogen and configure
+      - name: Autogen and configure for static build
         run: |
           autoreconf -i
-          LDFLAGS="-static" ./configure --enable-static --disable-shared --without-gnutls --with-openssl --with-libssh2 $FEATURE_FLAGS
+          # 使用 pkg-config 获取静态库的链接参数，并强制使用静态链接
+          export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig"
+          LDFLAGS="-all-static" ./configure \
+            --enable-static \
+            --disable-shared \
+            --with-gnutls \
+            --without-openssl \
+            --with-libssh2 \
+            $FEATURE_FLAGS \
+            PKG_CONFIG_LIBDIR="/usr/lib/x86_64-linux-gnu/pkgconfig" \
+            LIBS="$(pkg-config --libs --static libssl libcrypto zlib libssh2)"
 
       - name: Build
         run: make -j$(nproc)
