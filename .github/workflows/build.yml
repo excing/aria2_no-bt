@@ -36,7 +36,9 @@ jobs:
             libcppunit-dev\
             libxml2-dev \
             libunistring-dev \
-            libp11-kit-dev
+            libp11-kit-dev \
+            libp11-kit \
+            p11-kit
 
       - name: Setup gcc (Linux)
         run: |
